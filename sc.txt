@@ -144,10 +144,90 @@ function renderTechnologies() {
   })
 }
 
+// Chat Widget Functionality
+function setupChatWidget() {
+  const chatToggle = document.getElementById('chatToggle')
+  const chatWidget = document.getElementById('chatWidget')
+  const chatClose = document.getElementById('chatClose')
+  const chatInput = document.getElementById('chatInput')
+  const chatSend = document.getElementById('chatSend')
+
+  if (!chatToggle || !chatWidget) {
+    console.log('[v0] Chat widget elements not found')
+    return
+  }
+
+  let chatVisible = false
+
+  chatToggle.addEventListener('click', () => {
+    chatVisible = !chatVisible
+    chatWidget.classList.toggle('active')
+    if (chatVisible) {
+      chatInput.focus()
+    }
+  })
+
+  chatClose.addEventListener('click', () => {
+    chatVisible = false
+    chatWidget.classList.remove('active')
+  })
+
+  function displayMessage(content, isUser = false) {
+    const chatMessages = document.getElementById('chatMessages')
+    const messageDiv = document.createElement('div')
+    messageDiv.className = `message ${isUser ? 'user' : 'ai'}`
+    messageDiv.innerHTML = `
+      <div class="message-content">${content}</div>
+    `
+    chatMessages.appendChild(messageDiv)
+    chatMessages.scrollTop = chatMessages.scrollHeight
+  }
+
+  async function sendMessage() {
+    const message = chatInput.value.trim()
+    if (!message) return
+
+    displayMessage(message, true)
+    chatInput.value = ''
+    chatSend.disabled = true
+
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ message }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        displayMessage(data.reply)
+      } else {
+        displayMessage('Sorry, I encountered an error. Please try again.')
+      }
+    } catch (error) {
+      console.error('Chat error:', error)
+      displayMessage('Sorry, I encountered an error. Please make sure your OpenAI API is configured.')
+    } finally {
+      chatSend.disabled = false
+      chatInput.focus()
+    }
+  }
+
+  chatSend.addEventListener('click', sendMessage)
+  chatInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      sendMessage()
+    }
+  })
+}
+
 // Initialize everything when DOM is loaded
 document.addEventListener("DOMContentLoaded", () => {
   setGreeting()
   setupNavigation()
   renderSkills()
   renderTechnologies()
+  setupChatWidget()
 })
